@@ -1,0 +1,167 @@
+#include <bits/stdc++.h>
+using namespace std;
+bool cmp(pair<pair<string,string>,pair<pair<int,int>,pair<int,double>>> p1,pair<pair<string,string>,pair<pair<int,int>,pair<int,double>>> p2){
+    if(p1.first.first==p2.first.first){
+        if(p1.second.second.second==p2.second.second.second){
+            return p1.second.second.first>p2.second.second.first;
+        }
+        return p1.second.second.second>p2.second.second.second;
+    }
+    return p1.first.first<p2.first.first;
+}
+
+void func(vector<pair<pair<string,string>,pair<pair<int,int>,pair<int,double>>>> v,int mn_hour,int mn_minutes, int mx_hour,int mx_minutes,int duration,vector<vector<int>> &slots,vector<bool> &vis,int lease,int NODES){
+    for(int i=0;i<lease;i++){
+            string st=v[i].first.first;
+            string dead=v[i].first.second;
+            int exec=v[i].second.first.first;
+            int nodes=v[i].second.second.first;
+            int st_hour=stoi(st.substr(0,2));
+            int st_min=stoi(st.substr(3,2));
+            int curr_slot=((st_hour-mn_hour)*60 + (st_min-mn_minutes))/10;
+            int dead_hour=stoi(dead.substr(0,2));
+            int dead_min=stoi(dead.substr(3,2));
+            int deadSlots=((dead_hour-st_hour)*60+(dead_min-st_min))/10;
+            int numOfSlots=exec/10;
+            for(int j=curr_slot;j<=deadSlots-numOfSlots+curr_slot;j++){
+                int assign_nodes=0;
+                vector<pair<int,int>> store;
+                for(int k=0;k<NODES;k++){
+                    int p;
+                    for(p=j;p<j+numOfSlots;p++){
+                        if(slots[k][p]!=0)
+                            break;
+                    }
+                    if(p==j+numOfSlots){
+                        for(int z=j;z<j+numOfSlots;z++){
+                            store.push_back({k,z});
+                        }
+                        assign_nodes++;
+                    }
+                    if(assign_nodes==nodes){
+                        for(int d=0;d<store.size();d++){
+                            slots[store[d].first][store[d].second]=1;
+                        }
+                        vis[v[i].second.first.second-1]=true;
+                        break;
+                    }
+                }
+                if(assign_nodes==nodes){
+                    break;
+                }
+            }
+            
+        }
+}
+
+int main()
+{
+    int lease,NODES;
+    cout<<"enter number of leases : ";
+    cin>>lease;
+    cout<<"enter number of nodes : ";
+    cin>>NODES;
+    string mx_time;
+    string mn_time;
+    vector<pair<pair<string,string>,pair<pair<int,int>,pair<int,double>>>> v;
+    //   { {start_time , deadline} , { {execution_time , id} , {nodes,slack_time} }
+    
+    //   execution_time in minutes 
+    
+    //   we can give input manually
+    
+    // v.push_back({{"00:10","01:40"},{{40,1},{3,0}}});
+    // v.push_back({{"00:10","01:40"},{{50,2},{4,0}}});
+    // v.push_back({{"00:40","02:00"},{{10,3},{1,0}}});
+    // v.push_back({{"02:00","02:50"},{{30,4},{3,0}}});
+    // v.push_back({{"02:30","04:10"},{{30,5},{3,0}}});
+    // v.push_back({{"02:30","04:40"},{{50,6},{4,0}}});
+    // v.push_back({{"00:50","01:50"},{{30,7},{1,0}}});
+    // v.push_back({{"01:00","02:00"},{{20,8},{4,0}}});
+    // v.push_back({{"00:10","02:30"},{{30,9},{1,0}}});
+    // v.push_back({{"01:40","02:50"},{{40,10},{3,0}}});
+    // v.push_back({{"00:10","04:20"},{{80,11},{1,0}}});
+    // v.push_back({{"02:30","03:20"},{{10,12},{2,0}}});
+    // v.push_back({{"03:20","05:00"},{{30,13},{1,0}}});
+    
+    
+    
+    //instead of this we can take user input as well
+    
+    for(int i=0;i<lease;i++){
+        string start_time,deadline;
+        int execution_time,nodes;
+        cin>>start_time;
+        cin>>deadline;
+        cin>>execution_time;
+        cin>>nodes;
+        v.push_back({{start_time,deadline},{{execution_time,(i+1)},{nodes,0}}});
+    }
+    vector<bool> vis(lease,false);
+    mn_time="00:10";
+    mx_time="05:00";
+    int mn_hour=stoi(mn_time.substr(0,2));
+    int mn_minutes=stoi(mn_time.substr(3,2));
+    int mx_hour=stoi(mx_time.substr(0,2));
+    int mx_minutes=stoi(mx_time.substr(3,2));
+    int duration = ((mx_hour-mn_hour)*60+(mx_minutes- mn_minutes))/10;
+    vector<vector<int>> slots(4,vector<int> (duration,0));
+    func(v,mn_hour,mn_minutes,mx_hour,mx_minutes,duration,slots,vis,lease,NODES); //last parameter is for vis updation because according to id we are updating
+   
+    int cntVis=0;
+    cout<<"Lease accepted before slack time arrangement:";
+    cout<<endl;
+    cout<<"Accepted leases : ";
+    for(int i=0;i<lease;i++){
+        if(vis[i]){
+            cout<<"L"<<(i+1)<<" ";
+            cntVis++;
+        }
+    }
+    cout<<endl;
+    cout<<"rejected leases : ";
+    for(int i=0;i<lease;i++){
+        if(!vis[i])
+            cout<<"L"<<(i+1)<<" ";
+    }
+    cout<<endl;
+        
+    if(cntVis!=lease){
+        double slackTime=0;
+        for(int i=0;i<v.size();i++){  //updating slack time in vector v
+            int exec=v[i].second.first.first;
+            string st=v[i].first.first;
+            string dead=v[i].first.second;
+            int st_hour=stoi(st.substr(0,2));
+            int st_min=stoi(st.substr(3,2));
+            int dead_hour=stoi(dead.substr(0,2));
+            int dead_min=stoi(dead.substr(3,2));
+            int numerator=((dead_hour-st_hour)*60 + (dead_min-st_min));
+            slackTime=(double)numerator/exec;
+            v[i].second.second.second=slackTime;
+        }
+        sort(v.begin(),v.end(),cmp); //sorting according to descending order of slack time
+        cout<<endl;
+        
+        vector<vector<int>> new_slots(4,vector<int> (duration,0));
+        vector<bool> new_vis(lease,false);
+        func(v,mn_hour,mn_minutes,mx_hour,mx_minutes,duration,new_slots,new_vis,lease,NODES);
+        
+        cout<<"Lease accepted after slack time arrangement:";
+        cout<<endl;
+        cout<<"Accepted leases : ";
+        for(int i=0;i<lease;i++){
+            if(new_vis[i])
+                cout<<"L"<<(i+1)<<" ";
+        }
+        cout<<endl;
+        cout<<"rejected leases : ";
+        for(int i=0;i<lease;i++){
+            if(!new_vis[i])
+                cout<<"L"<<(i+1)<<" ";
+        }
+        cout<<endl;
+    }
+    }
+
+
